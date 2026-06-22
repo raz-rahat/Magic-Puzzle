@@ -49,9 +49,9 @@
   #gate{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;
     background:radial-gradient(140% 100% at 50% 0%,#0c1226,#06080f 70%);}
   #gate h1{font-family:var(--display);font-size:clamp(34px,9vw,62px);line-height:1.05;font-weight:700;color:#fff;text-shadow:0 0 30px rgba(0,240,255,.6);}
-  #gate .tag{color:var(--muted);font-size:15px;max-width:460px;line-height:1.75;}
+  #gate .tag{color:var(--muted);font-size:15px;max-width:470px;line-height:1.75;}
   #gate .steps{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
-  #gate .step{font-size:13px;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);padding:12px 16px;border-radius:14px;max-width:190px;}
+  #gate .step{font-size:13px;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);padding:12px 16px;border-radius:14px;max-width:200px;}
   #gate .step b{display:block;font-family:var(--display);color:var(--accent);margin-bottom:3px;font-size:16px;}
   #go{font-size:17px;padding:14px 34px;}
   #err{color:#ff6b8a;font-size:14px;min-height:18px;max-width:420px;}
@@ -92,12 +92,12 @@
 <!-- gate -->
 <div id="gate">
   <h1>Magic Puzzle</h1>
-  <p class="tag">ওয়েবক্যামের সামনে এসে দুই হাতে pinch করে নিজের একটা ছবি তোলো —
-     ছবিটা ৯ টুকরো হয়ে এলোমেলো হবে। এবার হাত দিয়ে pinch করে টুকরো ধরে অন্য ঘরে
-     ছেড়ে দিয়ে পুরো ছবিটা আবার মিলিয়ে ফেলো।</p>
+  <p class="tag">ওয়েবক্যামের সামনে এসে দুই হাত দিয়ে একটা চারকোনা ফ্রেম বানাও —
+     তারপর দুই হাতে pinch করে ফ্রেমের ভেতরের ছবিটা তোলো। ছবিটা ৯ টুকরো হয়ে এলোমেলো হবে,
+     এবার হাত দিয়ে pinch করে টুকরো সরিয়ে আবার মিলিয়ে ফেলো।</p>
   <div class="steps">
     <div class="step"><b>১</b>ক্যামেরার অনুমতি দাও</div>
-    <div class="step"><b>২</b>দুই হাতে pinch করে ছবি তোলো</div>
+    <div class="step"><b>২</b>দুই হাত দিয়ে ফ্রেম বানিয়ে pinch করো</div>
     <div class="step"><b>৩</b>pinch করে টুকরো সাজাও</div>
   </div>
   <button class="btn primary" id="go"><span class="spinner" id="sp"></span><span id="goText">▶ শুরু করো</span></button>
@@ -119,8 +119,9 @@ import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@m
 
 /* ---------- config ---------- */
 const GRID=3;
-const GAIN=1.0;                 // 1 = video-এর হাতের সাথে হুবহু মেলে
-const PINCH_ON=0.5, PINCH_OFF=0.72;   // palm-এর অনুপাতে pinch (hysteresis)
+const GAIN=1.0;                       // 1 = video-এর হাতের সাথে হুবহু মেলে
+const PINCH_ON=0.5, PINCH_OFF=0.72;   // palm-অনুপাতে pinch (hysteresis)
+const LERP=0.4;                       // 60fps interpolation (smoothness)
 const AUTHOR="Rahat-ul-Fardoush Raz";
 
 /* ---------- dom ---------- */
@@ -129,7 +130,7 @@ const video=$("cam"), canvas=$("view"), ctx=canvas.getContext("2d");
 const statusEl=$("status"), statusT=$("statusT"), hint=$("hint"), bar=$("bar");
 const movesBox=$("moves"), movesN=$("movesN");
 
-/* ---------- One-Euro filter (cursor smoothing) ---------- */
+/* ---------- One-Euro filter ---------- */
 class OneEuro{constructor(mc,beta,dc){this.mc=mc;this.beta=beta;this.dc=dc;this.xp=null;this.dxp=0;this.tp=null;}
   a(c,dt){const t=1/(2*Math.PI*c);return 1/(1+t/dt);}
   f(x,t){if(this.tp===null){this.tp=t;this.xp=x;return x;}let dt=(t-this.tp)/1000;if(dt<=0)dt=1/60;
@@ -137,170 +138,173 @@ class OneEuro{constructor(mc,beta,dc){this.mc=mc;this.beta=beta;this.dc=dc;this.
       cut=this.mc+this.beta*Math.abs(dxh),al=this.a(cut,dt),xh=al*x+(1-al)*this.xp;
     this.xp=xh;this.dxp=dxh;this.tp=t;return xh;}
   reset(){this.xp=null;this.dxp=0;this.tp=null;}}
-const fX=new OneEuro(1.4,0.03,1.0), fY=new OneEuro(1.4,0.03,1.0);
+const fX=new OneEuro(1.0,0.02,1.0), fY=new OneEuro(1.0,0.02,1.0);
 
-/* ---------- sizing (DPR capped = perf) ---------- */
+/* ---------- sizing ---------- */
 let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,1.5);
 function fit(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,1.5);
   canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
 addEventListener("resize",fit);fit();
 
-/* normalized landmark -> screen px (mirror + object-fit:cover aware) */
+function camMap(){const vw=video.videoWidth,vh=video.videoHeight,s=Math.max(W/vw,H/vh);
+  return {vw,vh,s,dw:vw*s,dh:vh*s,ox:(W-vw*s)/2,oy:(H-vh*s)/2};}
 function toScreen(nx,ny){
-  nx=Math.min(1,Math.max(0,0.5+(nx-0.5)*GAIN));
-  ny=Math.min(1,Math.max(0,0.5+(ny-0.5)*GAIN));
-  const vw=video.videoWidth,vh=video.videoHeight,s=Math.max(W/vw,H/vh),
-    dw=vw*s,dh=vh*s,ox=(W-dw)/2,oy=(H-dh)/2;
-  return {x:W-(ox+nx*dw), y:oy+ny*dh};
-}
+  nx=Math.min(1,Math.max(0,0.5+(nx-0.5)*GAIN));ny=Math.min(1,Math.max(0,0.5+(ny-0.5)*GAIN));
+  const {vw,vh,dw,dh,ox,oy}=camMap();return {x:W-(ox+nx*dw), y:oy+ny*dh};}
+function screenToVideo(scx,scy){const {vw,vh,dw,dh,ox,oy}=camMap();
+  let nx=(W-scx-ox)/dw, ny=(scy-oy)/dh;
+  nx=Math.min(1,Math.max(0,nx));ny=Math.min(1,Math.max(0,ny));return {x:nx*vw,y:ny*vh};}
 
 /* ---------- state ---------- */
 let landmarker=null,stream=null,running=false;
-let phase="capture";            // capture -> solve -> done
+let phase="capture";
 let captured=null, order=[], held=-1, moves=0, captureCooldown=0;
-let hands=[], cursor=null, pinchCount=0, pinching=false;
+let handsTarget=[], cursorTarget=null, pinchCount=0, pinching=false, captureSquare=null;
+let hands=[], cursor=null;                         // interpolated (drawn)
 let lastVideoTime=-1, cachedRes=null;
 
 const LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],
   [10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 
 function setStatus(t,m){statusT.textContent=t;statusEl.classList.remove("live","act");if(m)statusEl.classList.add(m);}
-
-/* ---------- pinch (distance-invariant) ---------- */
-function pinchRatio(lm){
-  const d=Math.hypot(lm[4].x-lm[8].x, lm[4].y-lm[8].y);
-  const palm=Math.hypot(lm[5].x-lm[17].x, lm[5].y-lm[17].y)||1e-4;
-  return d/palm;
-}
+function pinchRatio(lm){const d=Math.hypot(lm[4].x-lm[8].x,lm[4].y-lm[8].y);
+  const palm=Math.hypot(lm[5].x-lm[17].x,lm[5].y-lm[17].y)||1e-4;return d/palm;}
 
 /* ---------- puzzle geometry ---------- */
 function rect(){const s=Math.min(W,H)*0.74;return {s,ox:(W-s)/2,oy:(H-s)/2,cell:s/GRID};}
-function cellAt(p){const {ox,oy,cell}=rect();
+function cellAt(p){if(!p)return -1;const {ox,oy,cell}=rect();
   const gx=Math.floor((p.x-ox)/cell),gy=Math.floor((p.y-oy)/cell);
   if(gx<0||gy<0||gx>=GRID||gy>=GRID)return -1;return gy*GRID+gx;}
 
-function snapshot(){
-  const vw=video.videoWidth,vh=video.videoHeight,size=Math.min(vw,vh);
-  captured=document.createElement("canvas");captured.width=size;captured.height=size;
-  const c=captured.getContext("2d");
-  c.translate(size,0);c.scale(-1,1);                       // mirror to match preview
-  c.drawImage(video,(vw-size)/2,(vh-size)/2,size,size,0,0,size,size);
-  do{order=[...Array(GRID*GRID).keys()];
-    for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
-  }while(order.every((v,i)=>v===i));
-  moves=0;movesN.textContent=0;held=-1;phase="solve";captureCooldown=18;
-  movesBox.style.display="flex";renderBar();updateHint();
+/* square framed by the two hands' index fingertips */
+function squareFrom(p,q){
+  const cx=(p.x+q.x)/2, cy=(p.y+q.y)/2;
+  let half=Math.max(Math.abs(p.x-q.x),Math.abs(p.y-q.y))/2;
+  half=Math.min(Math.max(half,Math.min(W,H)*0.16),Math.min(W,H)*0.46);
+  let x=cx-half,y=cy-half,size=half*2;
+  x=Math.min(Math.max(x,4),W-size-4);y=Math.min(Math.max(y,4),H-size-4);
+  return {x,y,size};
 }
+function shuffle(){do{order=[...Array(GRID*GRID).keys()];
+  for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
+}while(order.every((v,i)=>v===i));}
 
-/* ---------- per-frame logic (runs on new camera frame) ---------- */
+function captureRect(sq){
+  const a=screenToVideo(sq.x,sq.y), b=screenToVideo(sq.x+sq.size,sq.y+sq.size);
+  const vx=Math.min(a.x,b.x),vy=Math.min(a.y,b.y),vw=Math.max(8,Math.abs(a.x-b.x)),vh=Math.max(8,Math.abs(a.y-b.y));
+  const out=Math.round(Math.min(Math.max(vw,vh),640));
+  captured=document.createElement("canvas");captured.width=out;captured.height=out;
+  const c=captured.getContext("2d");c.imageSmoothingQuality="high";
+  c.translate(out,0);c.scale(-1,1);                  // mirror to match preview
+  c.drawImage(video,vx,vy,vw,vh,0,0,out,out);
+  shuffle();phase="solve";captureCooldown=18;moves=0;movesN.textContent=0;held=-1;
+  captureSquare=null;movesBox.style.display="flex";renderBar();updateHint();
+}
+function captureCenter(){const s=Math.min(W,H)*0.74;captureRect({x:(W-s)/2,y:(H-s)/2,size:s});}
+
+/* ---------- per-frame logic ---------- */
 function process(res){
-  hands=[];cursor=null;pinchCount=0;
   if(!res||!res.landmarks||!res.landmarks.length){
-    fX.reset();fY.reset();
-    if(phase==="solve"&&held>=0)held=-1;
-    pinching=false;setStatus("হাত খুঁজছি…","live");return;
+    handsTarget=[];cursorTarget=null;pinchCount=0;captureSquare=null;
+    fX.reset();fY.reset();pinching=false;if(phase==="solve"&&held>=0)held=-1;
+    setStatus("হাত খুঁজছি…","live");return;
   }
-  res.landmarks.forEach(lm=>{
-    hands.push(lm.map(p=>toScreen(p.x,p.y)));
-    if(pinchRatio(lm)<PINCH_ON)pinchCount++;
-  });
-
-  // primary hand = first; smooth its index-fingertip into the cursor
-  const lm0=res.landmarks[0], t=performance.now();
-  const raw=toScreen(lm0[8].x,lm0[8].y);
-  cursor={x:fX.f(raw.x,t), y:fY.f(raw.y,t)};
-  // hysteresis pinch for the primary hand
+  handsTarget=res.landmarks.map(lm=>lm.map(p=>toScreen(p.x,p.y)));
+  pinchCount=0;res.landmarks.forEach(lm=>{if(pinchRatio(lm)<PINCH_ON)pinchCount++;});
+  const lm0=res.landmarks[0],t=performance.now(),raw=toScreen(lm0[8].x,lm0[8].y);
+  cursorTarget={x:fX.f(raw.x,t),y:fY.f(raw.y,t)};
   const r=pinchRatio(lm0);
-  if(!pinching && r<PINCH_ON)pinching=true;
-  else if(pinching && r>PINCH_OFF)pinching=false;
-
+  if(!pinching&&r<PINCH_ON)pinching=true;else if(pinching&&r>PINCH_OFF)pinching=false;
   if(captureCooldown>0)captureCooldown--;
 
   if(phase==="capture"){
-    setStatus(pinchCount>=2?"ছবি তুলছি… ✊✊":"দুই হাত দেখাও","live");
-    if(res.landmarks.length>=2 && pinchCount>=2 && captureCooldown===0)snapshot();
+    captureSquare = handsTarget.length>=2 ? squareFrom(handsTarget[0][8],handsTarget[1][8]) : null;
+    setStatus(handsTarget.length<2?"দুই হাত দেখাও":(pinchCount>=2?"ছবি তুলছি… ✊✊":"ফ্রেম বানাও"),"live");
+    if(handsTarget.length>=2&&pinchCount>=2&&captureCooldown===0&&captureSquare)captureRect(captureSquare);
   } else if(phase==="solve"){
-    if(pinching && held<0){const c=cellAt(cursor);if(c>=0)held=c;}
-    if(!pinching && held>=0){const tt=cellAt(cursor);
-      if(tt>=0&&tt!==held){[order[held],order[tt]]=[order[tt],order[held]];
-        moves++;movesN.textContent=moves;checkWin();}
+    const cur=cursorTarget;
+    if(pinching&&held<0){const c=cellAt(cur);if(c>=0)held=c;}
+    if(!pinching&&held>=0){const tt=cellAt(cur);
+      if(tt>=0&&tt!==held){[order[held],order[tt]]=[order[tt],order[held]];moves++;movesN.textContent=moves;checkWin();}
       held=-1;}
     setStatus(pinching?(held>=0?"টুকরো ধরেছ ✊":"…"):"প্রস্তুত","act");
   }
 }
 
-/* ---------- draw (runs every frame) ---------- */
-function rr(x,y,w,h,r){ctx.beginPath();
-  if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);}
-
+/* ---------- draw (60fps, interpolated) ---------- */
+function rr(x,y,w,h,r){ctx.beginPath();if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);}
+function lerpPts(){
+  if(handsTarget.length!==hands.length)hands=handsTarget.map(h=>h.map(p=>({x:p.x,y:p.y})));
+  else for(let i=0;i<hands.length;i++)for(let j=0;j<hands[i].length;j++){
+    hands[i][j].x+=(handsTarget[i][j].x-hands[i][j].x)*LERP;hands[i][j].y+=(handsTarget[i][j].y-hands[i][j].y)*LERP;}
+  if(cursorTarget){if(!cursor)cursor={x:cursorTarget.x,y:cursorTarget.y};
+    else{cursor.x+=(cursorTarget.x-cursor.x)*LERP;cursor.y+=(cursorTarget.y-cursor.y)*LERP;}}
+  else cursor=null;
+}
+function drawFrame(sq){
+  const {x,y,size}=sq, Y="#caff2e";
+  ctx.save();
+  ctx.strokeStyle="rgba(202,255,46,.45)";ctx.lineWidth=2;ctx.setLineDash([11,8]);rr(x,y,size,size,14);ctx.stroke();
+  ctx.setLineDash([]);ctx.strokeStyle=Y;ctx.lineWidth=4;ctx.shadowColor=Y;ctx.shadowBlur=12;
+  const L=Math.min(36,size*0.22),cor=[[x,y,1,1],[x+size,y,-1,1],[x,y+size,1,-1],[x+size,y+size,-1,-1]];
+  for(const [px,py,sx,sy] of cor){ctx.beginPath();ctx.moveTo(px+sx*L,py);ctx.lineTo(px,py);ctx.lineTo(px,py+sy*L);ctx.stroke();}
+  ctx.shadowBlur=10;ctx.fillStyle=Y;ctx.font="700 14px 'Space Grotesk',sans-serif";ctx.textAlign="center";
+  ctx.fillText("PINCH TO CAPTURE",x+size/2,y-12);
+  ctx.restore();
+}
+function tile(pos,ox,oy,cell,sc,lift){
+  const orig=order[pos],sx=(orig%GRID)*sc,sy=Math.floor(orig/GRID)*sc;
+  let dx=ox+(pos%GRID)*cell,dy=oy+Math.floor(pos/GRID)*cell,w=cell,h=cell;
+  ctx.save();
+  if(lift&&cursor){dx=cursor.x-cell/2;dy=cursor.y-cell/2;w=h=cell*1.05;ctx.shadowColor="rgba(0,240,255,.85)";ctx.shadowBlur=26;}
+  ctx.drawImage(captured,sx,sy,sc,sc,dx+1.5,dy+1.5,w-3,h-3);ctx.shadowBlur=0;
+  const solved=order[pos]===pos;
+  ctx.strokeStyle=solved?"rgba(0,240,255,.95)":"rgba(255,255,255,.16)";ctx.lineWidth=solved?3:1.5;
+  ctx.strokeRect(dx+1.5,dy+1.5,w-3,h-3);ctx.restore();
+}
 function draw(){
-  ctx.clearRect(0,0,W,H);
+  ctx.clearRect(0,0,W,H);lerpPts();
 
-  // puzzle board
-  if(phase!=="capture" && captured){
-    const {s,ox,oy,cell}=rect(), sc=captured.width/GRID;
+  if(phase!=="capture"&&captured){
+    const {s,ox,oy,cell}=rect(),sc=captured.width/GRID;
     ctx.save();ctx.fillStyle="rgba(6,8,15,.35)";rr(ox-10,oy-10,s+20,s+20,18);ctx.fill();ctx.restore();
     for(let p=0;p<GRID*GRID;p++){if(p===held)continue;tile(p,ox,oy,cell,sc,false);}
     if(held>=0)tile(held,ox,oy,cell,sc,true);
   }
+  if(phase==="capture"&&hands.length>=2)drawFrame(squareFrom(hands[0][8],hands[1][8]));
 
-  // hand skeleton (cyan)
   for(const pts of hands){
     ctx.strokeStyle="rgba(0,240,255,.5)";ctx.lineWidth=2;
     for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
     for(const q of pts){ctx.fillStyle="#00f0ff";ctx.beginPath();ctx.arc(q.x,q.y,3.5,0,7);ctx.fill();}
   }
-
-  // cursor
-  if(cursor && phase!=="done"){
+  if(cursor&&phase==="solve"){
     ctx.save();ctx.shadowColor="#00f0ff";ctx.shadowBlur=pinching?16:8;
     ctx.strokeStyle=pinching?"#00f0ff":"rgba(255,255,255,.85)";ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(cursor.x,cursor.y,pinching?13:18,0,7);ctx.stroke();ctx.restore();
   }
 }
-function tile(pos,ox,oy,cell,sc,lift){
-  const orig=order[pos], sx=(orig%GRID)*sc, sy=Math.floor(orig/GRID)*sc;
-  let dx=ox+(pos%GRID)*cell, dy=oy+Math.floor(pos/GRID)*cell, w=cell,h=cell;
-  ctx.save();
-  if(lift&&cursor){dx=cursor.x-cell/2;dy=cursor.y-cell/2;w=h=cell*1.05;
-    ctx.shadowColor="rgba(0,240,255,.85)";ctx.shadowBlur=26;}
-  ctx.drawImage(captured,sx,sy,sc,sc,dx+1.5,dy+1.5,w-3,h-3);
-  ctx.shadowBlur=0;
-  const solved=order[pos]===pos;
-  ctx.strokeStyle=solved?"rgba(0,240,255,.95)":"rgba(255,255,255,.16)";
-  ctx.lineWidth=solved?3:1.5;ctx.strokeRect(dx+1.5,dy+1.5,w-3,h-3);
-  ctx.restore();
-}
+function checkWin(){if(order.every((v,i)=>v===i)){phase="done";held=-1;
+  setStatus("মিলে গেছে! 🎉","act");hint.innerHTML=`🎉 <b>${moves}</b> চালে মিলিয়ে ফেলেছ!`;renderBar();}}
 
-function checkWin(){
-  if(order.every((v,i)=>v===i)){phase="done";held=-1;
-    setStatus("মিলে গেছে! 🎉","act");
-    hint.innerHTML=`🎉 <b>${moves}</b> চালে মিলিয়ে ফেলেছ!`;renderBar();}
-}
-
-/* ---------- ui: bottom bar + hint per phase ---------- */
+/* ---------- ui ---------- */
 function updateHint(){
-  if(phase==="capture")hint.textContent="দুই হাতে pinch করে ছবি তোলো ✊✊  (বা নিচে চাপো)";
+  if(phase==="capture")hint.textContent="দুই হাত দিয়ে চারকোনা ফ্রেম বানাও → দুই হাতে pinch ✊✊";
   else if(phase==="solve")hint.textContent="pinch করে টুকরো ধরো → অন্য ঘরে ছেড়ে দাও";
 }
-function renderBar(){
-  bar.innerHTML="";
-  if(phase==="capture"){bar.appendChild(mk("📸 ছবি তোলো","primary",()=>{if(phase==="capture")snapshot();}));}
-  else{bar.appendChild(mk("🔄 নতুন ছবি","",restart));}
-}
+function renderBar(){bar.innerHTML="";
+  if(phase==="capture")bar.appendChild(mk("📸 ছবি তোলো","primary",()=>{if(phase==="capture")captureCenter();}));
+  else bar.appendChild(mk("🔄 নতুন ছবি","",restart));}
 function mk(label,cls,fn){const b=document.createElement("button");b.className="btn"+(cls?" "+cls:"");b.textContent=label;b.onclick=fn;return b;}
 function restart(){captured=null;held=-1;phase="capture";captureCooldown=18;
   movesBox.style.display="none";setStatus("দুই হাত দেখাও","live");renderBar();updateHint();}
 
-/* ---------- main loop ---------- */
+/* ---------- loop ---------- */
 function loop(){
   requestAnimationFrame(loop);
   if(!running)return;
-  if(video.readyState>=2 && video.currentTime!==lastVideoTime){
-    lastVideoTime=video.currentTime;
-    cachedRes=landmarker.detectForVideo(video,performance.now());
-    process(cachedRes);
-  }
+  if(video.readyState>=2&&video.currentTime!==lastVideoTime){
+    lastVideoTime=video.currentTime;cachedRes=landmarker.detectForVideo(video,performance.now());process(cachedRes);}
   draw();
 }
 
@@ -314,7 +318,7 @@ const gate=$("gate"),go=$("go"),sp=$("sp"),goText=$("goText"),err=$("err");
 go.onclick=async()=>{
   err.textContent="";sp.style.display="inline-block";goText.textContent="চালু হচ্ছে…";go.disabled=true;
   try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:640,height:480},audio:false});
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480},frameRate:{ideal:60}},audio:false});
     video.srcObject=stream;await video.play();fit();
     goText.textContent="মডেল লোড হচ্ছে…";
     const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10/wasm");
