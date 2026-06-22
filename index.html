@@ -346,15 +346,9 @@ function draw(){
     for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
     ctx.strokeStyle=HAND_LINE;ctx.lineWidth=4;
     for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
-    for(let k=0;k<pts.length;k++){const q=pts[k];
-      if(k===4||k===8){               // বুড়ো আঙুল + তর্জনীর মাথা = pinch point (লাল)
-        ctx.fillStyle="rgba(255,50,50,.30)";ctx.beginPath();ctx.arc(q.x,q.y,12,0,7);ctx.fill();
-        ctx.fillStyle="#ff3b3b";ctx.beginPath();ctx.arc(q.x,q.y,7,0,7);ctx.fill();
-      }else{
-        ctx.fillStyle="rgba(234,255,46,.28)";ctx.beginPath();ctx.arc(q.x,q.y,9,0,7);ctx.fill();
-        ctx.fillStyle=HAND_DOT;ctx.beginPath();ctx.arc(q.x,q.y,5.5,0,7);ctx.fill();
-      }
-    }
+    for(const q of pts){
+      ctx.fillStyle="rgba(234,255,46,.28)";ctx.beginPath();ctx.arc(q.x,q.y,9,0,7);ctx.fill();
+      ctx.fillStyle=HAND_DOT;ctx.beginPath();ctx.arc(q.x,q.y,5.5,0,7);ctx.fill();}
   }
   if(pcur&&phase==="solve"){
     ctx.strokeStyle="rgba(170,255,0,.3)";ctx.lineWidth=8;
@@ -364,6 +358,12 @@ function draw(){
     ctx.fillStyle=pinching?POINTER:"rgba(170,255,0,.55)";
     ctx.beginPath();ctx.arc(pcur.x,pcur.y,pinching?5:3.5,0,7);ctx.fill();
   }
+
+  // pinch fingertips (thumb tip #4 + index tip #8) — always on top, pure red
+  for(const pts of hands){for(const idx of [4,8]){const q=pts[idx];
+    ctx.fillStyle="rgba(255,0,0,.28)";ctx.beginPath();ctx.arc(q.x,q.y,13,0,7);ctx.fill();
+    ctx.fillStyle="#ff0000";ctx.beginPath();ctx.arc(q.x,q.y,8,0,7);ctx.fill();
+    ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.beginPath();ctx.arc(q.x,q.y,8,0,7);ctx.stroke();}}
 
   if(phase==="solve"&&!solved)timerB.textContent=Math.floor((performance.now()-solveStart)/1000)+"s";
 }
