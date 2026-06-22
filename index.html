@@ -3,331 +3,332 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-<title>Raz Puzzle</title>
+<title>Magic Puzzle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg:#080b16;
-    --bg2:#0b1228;
-    --cyan:#22d3ee;
-    --blue:#38bdf8;
-    --magenta:#d946ef;
-    --purple:#a855f7;
-    --grad:linear-gradient(135deg,#22d3ee 0%,#38bdf8 35%,#a855f7 70%,#d946ef 100%);
-    --panel:rgba(13,20,40,.72);
-    --line:rgba(56,189,248,.30);
-    --txt:#eaf6ff;
-    --muted:#8aa0c4;
-  }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;background:
-    radial-gradient(120% 80% at 50% 0%, #11193a 0%, var(--bg) 60%) fixed;
-    color:var(--txt);font-family:"Hind Siliguri","Poppins",system-ui,sans-serif;
-    overflow:hidden}
-  .display{font-family:"Poppins",sans-serif}
+  :root{--ink:#e9eefc;--muted:#8b93b0;--panel:rgba(14,18,32,.6);--line:rgba(255,255,255,.10);--accent:#00f0ff;
+    --bn:'Hind Siliguri',system-ui,sans-serif;--display:'Space Grotesk',system-ui,sans-serif;}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;background:#06080f;color:var(--ink);font-family:var(--bn);}
+  #stage{position:fixed;inset:0;}
+  #cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1);
+       background:#06080f;filter:brightness(.82) saturate(1.05) contrast(1.02);}
+  #view{position:absolute;inset:0;width:100%;height:100%;z-index:2;}
+  #stage::after{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 28%,transparent 55%,rgba(2,4,10,.5) 100%);}
 
-  .screen{position:fixed;inset:0;display:none;flex-direction:column;
-    align-items:center;justify-content:center;text-align:center;padding:28px}
-  .screen.on{display:flex}
+  .brand{position:absolute;top:14px;left:14px;z-index:7;display:flex;align-items:center;gap:10px;
+    padding:9px 13px;border-radius:14px;background:var(--panel);border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);}
+  .spark{width:18px;height:18px;border-radius:5px;background:conic-gradient(from 0deg,#00f0ff,#b14bff,#ff2bd6,#00f0ff);box-shadow:0 0 14px #00f0ff99;animation:spin 6s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .brand b{font-family:var(--display);font-size:15px;} .brand small{font-size:11px;color:var(--muted);}
 
-  /* ---------- logo ---------- */
-  .logo{width:118px;height:118px;border-radius:30px;background:var(--grad);
-    position:relative;box-shadow:0 0 50px rgba(56,189,248,.45),
-    0 0 90px rgba(217,70,239,.30);margin-bottom:26px}
-  .logo::after{content:"";position:absolute;inset:0;border-radius:30px;
-    background:radial-gradient(60% 60% at 38% 32%, rgba(255,255,255,.55), transparent 60%)}
-  .logo.sm{width:60px;height:60px;border-radius:16px;margin:0 0 0 0;
-    box-shadow:0 0 22px rgba(56,189,248,.5)}
+  .topright{position:absolute;top:14px;right:14px;z-index:7;display:flex;flex-direction:column;gap:8px;align-items:flex-end;}
+  #status{display:flex;align-items:center;gap:8px;padding:9px 13px;border-radius:999px;background:var(--panel);
+    border:1px solid var(--line);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:13px;color:var(--muted);}
+  #dot{width:9px;height:9px;border-radius:50%;background:#566;transition:.2s;}
+  #status.live #dot{background:#00f0ff;box-shadow:0 0 12px #00f0ff;}
+  #status.act #dot{background:#aaff00;box-shadow:0 0 12px #aaff00;}
+  #moves{display:none;align-items:center;gap:7px;padding:8px 13px;border-radius:999px;background:var(--panel);
+    border:1px solid var(--line);backdrop-filter:blur(14px);font-size:13px;color:var(--muted);}
+  #moves b{font-family:var(--display);color:var(--accent);font-size:16px;}
 
-  /* ---------- splash ---------- */
-  h1.title{font-family:"Poppins";font-weight:800;font-size:46px;letter-spacing:.5px;
-    color:#fff;text-shadow:0 0 22px rgba(34,211,238,.65);line-height:1.05}
-  .by{margin-top:14px;font-size:18px;color:#dbe9ff;font-weight:600}
-  .school{margin-top:8px;font-size:15px;color:var(--cyan);letter-spacing:.4px}
-  .tap{position:fixed;bottom:34px;left:0;right:0;color:var(--muted);font-size:15px;
-    animation:pulse 1.8s ease-in-out infinite}
-  @keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+  .hint{position:absolute;left:50%;bottom:90px;transform:translateX(-50%);z-index:7;font-size:13.5px;color:#cfe8ff;
+    background:rgba(6,8,15,.55);padding:8px 16px;border-radius:999px;border:1px solid var(--line);
+    backdrop-filter:blur(10px);text-align:center;max-width:90vw;transition:opacity .3s;}
+  .bar{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:7;display:flex;gap:11px;}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:12px 20px;border-radius:14px;cursor:pointer;
+    font-family:var(--bn);font-size:14px;color:var(--ink);border:1px solid var(--line);
+    background:rgba(255,255,255,.05);backdrop-filter:blur(12px);transition:.15s;white-space:nowrap;}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:linear-gradient(135deg,#00f0ff,#b14bff);color:#04101a;border:none;font-weight:700;}
 
-  /* ---------- intro ---------- */
-  #intro h1.title{font-size:40px}
-  .desc{max-width:560px;margin:18px auto 0;font-size:16px;line-height:1.8;color:#c4d6f0}
-  .cards{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin:28px 0 6px;
-    max-width:600px}
-  .card{flex:1 1 160px;min-width:150px;background:rgba(255,255,255,.03);
-    border:1px solid var(--line);border-radius:18px;padding:18px 16px}
-  .card .n{font-family:"Poppins";font-weight:700;font-size:20px;color:var(--cyan);
-    text-shadow:0 0 14px rgba(34,211,238,.6);margin-bottom:8px}
-  .card .t{font-size:15px;color:#dbe9ff;font-weight:600;line-height:1.45}
-  .btn{font-family:"Hind Siliguri";font-weight:700;font-size:19px;color:#06121f;
-    background:var(--grad);border:none;border-radius:999px;padding:15px 46px;
-    margin-top:26px;cursor:pointer;box-shadow:0 10px 30px rgba(56,189,248,.35)}
-  .btn:active{transform:translateY(1px)}
-  .foot{position:fixed;bottom:26px;left:0;right:0;font-size:13px;color:var(--muted)}
-  .foot b{color:#dbe9ff}
-  .foot .rights{margin-top:4px;font-size:12px}
+  /* gate */
+  #gate{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:24px;
+    background:radial-gradient(140% 100% at 50% 0%,#0c1226,#06080f 70%);}
+  #gate h1{font-family:var(--display);font-size:clamp(34px,9vw,62px);line-height:1.05;font-weight:700;color:#fff;text-shadow:0 0 30px rgba(0,240,255,.6);}
+  #gate .tag{color:var(--muted);font-size:15px;max-width:460px;line-height:1.75;}
+  #gate .steps{display:flex;gap:14px;flex-wrap:wrap;justify-content:center;}
+  #gate .step{font-size:13px;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);padding:12px 16px;border-radius:14px;max-width:190px;}
+  #gate .step b{display:block;font-family:var(--display);color:var(--accent);margin-bottom:3px;font-size:16px;}
+  #go{font-size:17px;padding:14px 34px;}
+  #err{color:#ff6b8a;font-size:14px;min-height:18px;max-width:420px;}
+  .copy{font-size:12px;color:#6b7493;border-top:1px solid var(--line);padding-top:14px;line-height:1.7;margin-top:4px;}
+  .copy b{color:#aeb6d4;}
+  .spinner{width:18px;height:18px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none;}
 
-  /* ---------- game ---------- */
-  #game{padding:0;display:none}
-  #game.on{display:block}
-  #stage{position:fixed;inset:0;display:grid;place-items:center}
-  video{display:none}
-  canvas{max-width:100%;max-height:100%;display:block}
-
-  .hud{position:fixed;top:12px;left:12px;right:12px;display:flex;
-    justify-content:space-between;gap:10px;pointer-events:none;z-index:5}
-  .phase{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:10px 14px;backdrop-filter:blur(8px);max-width:320px}
-  .phase .pt{font-family:"Poppins";color:var(--cyan);font-weight:700;letter-spacing:.1em;
-    font-size:12px;display:flex;align-items:center;gap:7px;margin-bottom:6px}
-  .phase .dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);
-    box-shadow:0 0 10px var(--cyan)}
-  .phase ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.55;color:#c4d6f0}
-  .phase b{color:var(--cyan)}
-  .stat{background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:10px 14px;backdrop-filter:blur(8px);text-align:right;font-size:12px;color:#c4d6f0}
-  .stat b{font-family:"Poppins";color:var(--cyan);font-size:18px}
-
-  .bar{position:fixed;bottom:16px;left:0;right:0;display:flex;gap:10px;
-    justify-content:center;z-index:5}
-  .gbtn{font-family:"Hind Siliguri";font-weight:700;font-size:14px;color:#06121f;
-    background:var(--grad);border:none;border-radius:999px;padding:12px 22px;cursor:pointer;
-    box-shadow:0 8px 22px rgba(56,189,248,.3)}
-  .gbtn.ghost{background:transparent;color:var(--cyan);border:1px solid var(--line);
-    box-shadow:none}
-  .gbtn:active{transform:translateY(1px)}
-
-  .center-msg{position:fixed;inset:0;display:none;place-items:center;z-index:8}
-  .center-msg.on{display:grid}
-  .mcard{background:var(--panel);border:1px solid var(--line);border-radius:20px;
-    padding:26px 30px;text-align:center;backdrop-filter:blur(10px);max-width:420px}
-  .mcard h2{font-family:"Poppins";font-size:24px;color:var(--cyan);margin-bottom:8px}
-  .mcard p{font-size:14px;color:#c4d6f0;line-height:1.6;margin-bottom:16px}
-  .mcard b{color:#fff}
-  .spin{width:32px;height:32px;border:3px solid var(--line);border-top-color:var(--cyan);
-    border-radius:50%;margin:0 auto 14px;animation:r 1s linear infinite}
-  @keyframes r{to{transform:rotate(360deg)}}
-  .err{color:#ff9a9a}
+  /* intro */
+  #intro{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;padding:24px;cursor:pointer;
+    background:radial-gradient(140% 100% at 50% 34%,#0e1430,#06080f 72%);}
+  #intro .orb{width:84px;height:84px;border-radius:23px;background:conic-gradient(from 0deg,#00f0ff,#b14bff,#ff2bd6,#00f0ff);box-shadow:0 0 60px #00f0ff70;animation:spin 5s linear infinite,pop .8s ease;}
+  @keyframes pop{from{transform:scale(.4);opacity:0}to{transform:scale(1);opacity:1}}
+  #intro .t1{font-family:var(--display);font-size:clamp(40px,11vw,82px);font-weight:700;margin-top:8px;color:#fff;
+    text-shadow:0 0 30px rgba(0,240,255,.7),0 0 10px rgba(0,240,255,.5);opacity:0;animation:up .7s ease .4s forwards;}
+  #intro .dev{font-size:clamp(15px,4.2vw,21px);color:#dde3f5;opacity:0;animation:up .7s ease 1s forwards;}
+  #intro .school2{font-size:clamp(13px,3.6vw,18px);color:#9fb6d6;opacity:0;animation:up .7s ease 1.4s forwards;}
+  #intro .skip{position:absolute;bottom:26px;font-size:12px;color:var(--muted);opacity:0;animation:fadein 1s ease 2.4s forwards;}
+  @keyframes up{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fadein{to{opacity:1}}
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important}}
 </style>
 </head>
 <body>
+<div id="stage">
+  <video id="cam" playsinline muted></video>
+  <canvas id="view"></canvas>
 
-<!-- ============ SPLASH ============ -->
-<section class="screen on" id="splash">
-  <div class="logo"></div>
-  <h1 class="title display">Raz Puzzle</h1>
-  <div class="by">Developed by Rahat-ul-Fardoush Raz</div>
-  <div class="school">Bangabashi Secondary School</div>
-  <div class="tap">স্ক্রিনে টাচ করে এগিয়ে যাও →</div>
-</section>
-
-<!-- ============ INTRO ============ -->
-<section class="screen" id="intro">
-  <div class="logo sm" style="margin-bottom:18px"></div>
-  <h1 class="title display">Raz Puzzle</h1>
-  <p class="desc">ওয়েবক্যামের সামনে এসো — দুই হাতে pinch করে নিজের একটা ছবি তোলো।
-     ছবিটা ৯ টুকরো হয়ে এলোমেলো হয়ে যাবে। এবার হাত নাড়িয়ে, pinch করে টুকরো ধরে
-     অন্য জায়গায় ছেড়ে দিয়ে পুরো ছবিটা আবার মিলিয়ে ফেলো।</p>
-  <div class="cards">
-    <div class="card"><div class="n">১</div><div class="t">ক্যামেরার অনুমতি দাও</div></div>
-    <div class="card"><div class="n">২</div><div class="t">দুই হাতে pinch করে ছবি তোলো</div></div>
-    <div class="card"><div class="n">৩</div><div class="t">pinch করে টুকরো সাজাও</div></div>
-  </div>
-  <button class="btn" id="startBtn">▶ শুরু করো</button>
-  <div class="foot">© 2026 <b>Rahat-ul-Fardoush Raz</b><div class="rights">সর্বস্বত্ব সংরক্ষিত</div></div>
-</section>
-
-<!-- ============ GAME ============ -->
-<section id="game">
-  <div id="stage">
-    <video id="cam" autoplay playsinline muted></video>
-    <canvas id="view"></canvas>
+  <div class="brand"><span class="spark"></span><span><b>Magic Puzzle</b> <small>by RAZ</small></span></div>
+  <div class="topright">
+    <div id="status"><span id="dot"></span><span id="statusT">প্রস্তুত</span></div>
+    <div id="moves">চাল <b id="movesN">0</b></div>
   </div>
 
-  <div class="hud">
-    <div class="phase">
-      <div class="pt"><span class="dot"></span><span id="phaseName">PHASE 1 · CAPTURE</span></div>
-      <ol id="phaseSteps"></ol>
-    </div>
-    <div class="stat"><div>চাল</div><b id="moves">0</b></div>
-  </div>
+  <div class="hint" id="hint"></div>
+  <div class="bar" id="bar"></div>
+</div>
 
-  <div class="bar">
-    <button class="gbtn" id="actBtn">ছবি তোলো</button>
-    <button class="gbtn ghost" id="resetBtn">আবার</button>
+<!-- gate -->
+<div id="gate">
+  <h1>Magic Puzzle</h1>
+  <p class="tag">ওয়েবক্যামের সামনে এসে দুই হাতে pinch করে নিজের একটা ছবি তোলো —
+     ছবিটা ৯ টুকরো হয়ে এলোমেলো হবে। এবার হাত দিয়ে pinch করে টুকরো ধরে অন্য ঘরে
+     ছেড়ে দিয়ে পুরো ছবিটা আবার মিলিয়ে ফেলো।</p>
+  <div class="steps">
+    <div class="step"><b>১</b>ক্যামেরার অনুমতি দাও</div>
+    <div class="step"><b>২</b>দুই হাতে pinch করে ছবি তোলো</div>
+    <div class="step"><b>৩</b>pinch করে টুকরো সাজাও</div>
   </div>
+  <button class="btn primary" id="go"><span class="spinner" id="sp"></span><span id="goText">▶ শুরু করো</span></button>
+  <div id="err"></div>
+  <div class="copy">© 2026 <b>Rahat-ul-Fardoush Raz</b><br>Bangabashi Secondary School · সর্বস্বত্ব সংরক্ষিত</div>
+</div>
 
-  <div class="center-msg on" id="loader">
-    <div class="mcard">
-      <div class="spin"></div>
-      <h2>লোড হচ্ছে…</h2>
-      <p id="loadMsg">ক্যামেরা আর হ্যান্ড-মডেল চালু হচ্ছে। প্রথমবার একটু সময় লাগতে পারে।</p>
-    </div>
-  </div>
-
-  <div class="center-msg" id="winScreen">
-    <div class="mcard">
-      <h2>মিলে গেছে! 🎉</h2>
-      <p>তুমি <b id="winMoves">0</b> চালে পাজলটা মিলিয়ে ফেলেছ।</p>
-      <button class="btn" id="againBtn" style="margin-top:4px">আবার খেলো</button>
-    </div>
-  </div>
-</section>
+<!-- intro -->
+<div id="intro">
+  <div class="orb"></div>
+  <div class="t1">Magic Puzzle</div>
+  <div class="dev">Developed by Rahat-ul-Fardoush Raz</div>
+  <div class="school2">Bangabashi Secondary School</div>
+  <div class="skip">স্ক্রিনে টাচ করে এগিয়ে যাও →</div>
+</div>
 
 <script type="module">
-import { HandLandmarker, FilesetResolver }
-  from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12";
+import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10";
 
-const $ = id => document.getElementById(id);
+/* ---------- config ---------- */
+const GRID=3;
+const GAIN=1.0;                 // 1 = video-এর হাতের সাথে হুবহু মেলে
+const PINCH_ON=0.5, PINCH_OFF=0.72;   // palm-এর অনুপাতে pinch (hysteresis)
+const AUTHOR="Rahat-ul-Fardoush Raz";
 
-// screens
-const splash=$("splash"), intro=$("intro"), game=$("game");
-splash.addEventListener("click", ()=>{ splash.classList.remove("on"); intro.classList.add("on"); });
-$("startBtn").onclick = ()=>{ intro.classList.remove("on"); game.classList.add("on"); init(); };
-
-// game dom
+/* ---------- dom ---------- */
+const $=id=>document.getElementById(id);
 const video=$("cam"), canvas=$("view"), ctx=canvas.getContext("2d");
-const loader=$("loader"), loadMsg=$("loadMsg"), winEl=$("winScreen"),
-      winMoves=$("winMoves"), movesEl=$("moves"),
-      phaseName=$("phaseName"), phaseSteps=$("phaseSteps"), actBtn=$("actBtn");
+const statusEl=$("status"), statusT=$("statusT"), hint=$("hint"), bar=$("bar");
+const movesBox=$("moves"), movesN=$("movesN");
 
-// config
-const GRID=3, PINCH=0.06;
-let W=0,H=0;
+/* ---------- One-Euro filter (cursor smoothing) ---------- */
+class OneEuro{constructor(mc,beta,dc){this.mc=mc;this.beta=beta;this.dc=dc;this.xp=null;this.dxp=0;this.tp=null;}
+  a(c,dt){const t=1/(2*Math.PI*c);return 1/(1+t/dt);}
+  f(x,t){if(this.tp===null){this.tp=t;this.xp=x;return x;}let dt=(t-this.tp)/1000;if(dt<=0)dt=1/60;
+    const dx=(x-this.xp)/dt,aD=this.a(this.dc,dt),dxh=aD*dx+(1-aD)*this.dxp,
+      cut=this.mc+this.beta*Math.abs(dxh),al=this.a(cut,dt),xh=al*x+(1-al)*this.xp;
+    this.xp=xh;this.dxp=dxh;this.tp=t;return xh;}
+  reset(){this.xp=null;this.dxp=0;this.tp=null;}}
+const fX=new OneEuro(1.4,0.03,1.0), fY=new OneEuro(1.4,0.03,1.0);
 
-// state
-let handLandmarker=null, lastT=-1, phase="capture", captured=null,
-    order=[], held=-1, cursor=null, moves=0, captureCooldown=0;
+/* ---------- sizing (DPR capped = perf) ---------- */
+let W=innerWidth,H=innerHeight,DPR=Math.min(devicePixelRatio||1,1.5);
+function fit(){W=innerWidth;H=innerHeight;DPR=Math.min(devicePixelRatio||1,1.5);
+  canvas.width=W*DPR;canvas.height=H*DPR;ctx.setTransform(DPR,0,0,DPR,0,0);}
+addEventListener("resize",fit);fit();
+
+/* normalized landmark -> screen px (mirror + object-fit:cover aware) */
+function toScreen(nx,ny){
+  nx=Math.min(1,Math.max(0,0.5+(nx-0.5)*GAIN));
+  ny=Math.min(1,Math.max(0,0.5+(ny-0.5)*GAIN));
+  const vw=video.videoWidth,vh=video.videoHeight,s=Math.max(W/vw,H/vh),
+    dw=vw*s,dh=vh*s,ox=(W-dw)/2,oy=(H-dh)/2;
+  return {x:W-(ox+nx*dw), y:oy+ny*dh};
+}
+
+/* ---------- state ---------- */
+let landmarker=null,stream=null,running=false;
+let phase="capture";            // capture -> solve -> done
+let captured=null, order=[], held=-1, moves=0, captureCooldown=0;
+let hands=[], cursor=null, pinchCount=0, pinching=false;
+let lastVideoTime=-1, cachedRes=null;
 
 const LINKS=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],
   [10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 
-const stepsByPhase={
-  capture:["ফ্রেমের মধ্যে নিজেকে রাখো।","ক্যামেরায় <b>দুই হাত</b> দেখাও।",
-           "একসাথে <b>দুই হাতে pinch</b> করে ছবি তোলো।","অথবা নিচের বাটনে চাপো।"],
-  solve:["হাত নাড়িয়ে কার্সর সরাও।","<b>Pinch করে ধরো</b> একটা টুকরো।",
-         "অন্য টুকরোয় নিয়ে <b>ছেড়ে দাও</b> — swap হবে।"]
-};
-function setPhase(p){
-  phase=p;
-  phaseName.textContent = p==="capture" ? "PHASE 1 · CAPTURE" : "PHASE 2 · SOLVE";
-  phaseSteps.innerHTML = (stepsByPhase[p]||[]).map(s=>`<li>${s}</li>`).join("");
-  actBtn.style.display = p==="capture" ? "" : "none";
+function setStatus(t,m){statusT.textContent=t;statusEl.classList.remove("live","act");if(m)statusEl.classList.add(m);}
+
+/* ---------- pinch (distance-invariant) ---------- */
+function pinchRatio(lm){
+  const d=Math.hypot(lm[4].x-lm[8].x, lm[4].y-lm[8].y);
+  const palm=Math.hypot(lm[5].x-lm[17].x, lm[5].y-lm[17].y)||1e-4;
+  return d/palm;
 }
 
-async function init(){
-  try{
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video:{ width:{ideal:1280}, height:{ideal:720}, facingMode:"user" }, audio:false });
-    video.srcObject = stream;
-    await new Promise(r=>video.onloadedmetadata=r);
-    await video.play();
-    W=video.videoWidth; H=video.videoHeight; canvas.width=W; canvas.height=H;
-
-    loadMsg.textContent = "হ্যান্ড-ট্র্যাকিং মডেল লোড হচ্ছে…";
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm");
-    handLandmarker = await HandLandmarker.createFromOptions(vision,{
-      baseOptions:{
-        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
-        delegate:"GPU"
-      },
-      runningMode:"VIDEO", numHands:2
-    });
-
-    loader.classList.remove("on");
-    setPhase("capture");
-    requestAnimationFrame(loop);
-  }catch(e){
-    loader.querySelector(".spin").style.display="none";
-    loader.querySelector("h2").textContent="চালু করা গেল না";
-    loadMsg.innerHTML = `<span class="err">${e.message}</span><br><br>
-      ক্যামেরার অনুমতি দাও আর HTTPS লিংক (vercel.app) থেকে খোলো।`;
-  }
-}
-
-const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-const toPx=lm=>({x:(1-lm.x)*W, y:lm.y*H});
-const isPinch=lm=>dist(lm[4],lm[8])<PINCH;
-
-function puzzleRect(){ const s=Math.min(W,H)*0.72;
-  return {s, ox:(W-s)/2, oy:(H-s)/2, cell:s/GRID}; }
-function cellAt(px){ const {ox,oy,cell}=puzzleRect();
-  const gx=Math.floor((px.x-ox)/cell), gy=Math.floor((px.y-oy)/cell);
-  if(gx<0||gy<0||gx>=GRID||gy>=GRID) return -1; return gy*GRID+gx; }
+/* ---------- puzzle geometry ---------- */
+function rect(){const s=Math.min(W,H)*0.74;return {s,ox:(W-s)/2,oy:(H-s)/2,cell:s/GRID};}
+function cellAt(p){const {ox,oy,cell}=rect();
+  const gx=Math.floor((p.x-ox)/cell),gy=Math.floor((p.y-oy)/cell);
+  if(gx<0||gy<0||gx>=GRID||gy>=GRID)return -1;return gy*GRID+gx;}
 
 function snapshot(){
-  captured=document.createElement("canvas"); captured.width=W; captured.height=H;
-  const c=captured.getContext("2d"); c.translate(W,0); c.scale(-1,1); c.drawImage(video,0,0,W,H);
-  do{ order=[...Array(GRID*GRID).keys()];
-    for(let i=order.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1));
-      [order[i],order[j]]=[order[j],order[i]]; }
+  const vw=video.videoWidth,vh=video.videoHeight,size=Math.min(vw,vh);
+  captured=document.createElement("canvas");captured.width=size;captured.height=size;
+  const c=captured.getContext("2d");
+  c.translate(size,0);c.scale(-1,1);                       // mirror to match preview
+  c.drawImage(video,(vw-size)/2,(vh-size)/2,size,size,0,0,size,size);
+  do{order=[...Array(GRID*GRID).keys()];
+    for(let i=order.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[order[i],order[j]]=[order[j],order[i]];}
   }while(order.every((v,i)=>v===i));
-  moves=0; movesEl.textContent=0; held=-1; setPhase("solve");
+  moves=0;movesN.textContent=0;held=-1;phase="solve";captureCooldown=18;
+  movesBox.style.display="flex";renderBar();updateHint();
 }
 
-function drawTile(pos,lift){
-  const {ox,oy,cell}=puzzleRect(); const orig=order[pos];
-  const sc=captured.width/GRID, sx=(orig%GRID)*sc, sy=Math.floor(orig/GRID)*sc;
-  let dx=ox+(pos%GRID)*cell, dy=oy+Math.floor(pos/GRID)*cell, w=cell,h=cell;
-  if(lift&&cursor){ dx=cursor.x-cell/2; dy=cursor.y-cell/2; w=h=cell*1.06;
-    ctx.shadowColor="rgba(34,211,238,.8)"; ctx.shadowBlur=26; }
-  ctx.drawImage(captured, sx,sy,sc,sc, dx,dy,w,h); ctx.shadowBlur=0;
-  ctx.strokeStyle = order[pos]===pos ? "rgba(34,211,238,.95)" : "rgba(255,255,255,.18)";
-  ctx.lineWidth = order[pos]===pos ? 3 : 1.5; ctx.strokeRect(dx,dy,w,h);
-}
-
-function loop(){
-  requestAnimationFrame(loop);
-  if(!handLandmarker) return;
-
-  ctx.save(); ctx.translate(W,0); ctx.scale(-1,1); ctx.drawImage(video,0,0,W,H); ctx.restore();
-  ctx.fillStyle="rgba(6,10,24,.32)"; ctx.fillRect(0,0,W,H);
-
-  const now=performance.now(); let res={landmarks:[]};
-  if(now!==lastT){ lastT=now; res=handLandmarker.detectForVideo(video,now); }
-
-  cursor=null; let pinchCount=0;
-  for(const lm of res.landmarks){
-    const pts=lm.map(toPx);
-    ctx.strokeStyle="rgba(34,211,238,.55)"; ctx.lineWidth=2;
-    for(const [a,b] of LINKS){ ctx.beginPath();
-      ctx.moveTo(pts[a].x,pts[a].y); ctx.lineTo(pts[b].x,pts[b].y); ctx.stroke(); }
-    for(const p of pts){ ctx.fillStyle="#22d3ee"; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,7); ctx.fill(); }
-    if(isPinch(lm)) pinchCount++;
-    cursor=pts[8];
+/* ---------- per-frame logic (runs on new camera frame) ---------- */
+function process(res){
+  hands=[];cursor=null;pinchCount=0;
+  if(!res||!res.landmarks||!res.landmarks.length){
+    fX.reset();fY.reset();
+    if(phase==="solve"&&held>=0)held=-1;
+    pinching=false;setStatus("হাত খুঁজছি…","live");return;
   }
+  res.landmarks.forEach(lm=>{
+    hands.push(lm.map(p=>toScreen(p.x,p.y)));
+    if(pinchRatio(lm)<PINCH_ON)pinchCount++;
+  });
+
+  // primary hand = first; smooth its index-fingertip into the cursor
+  const lm0=res.landmarks[0], t=performance.now();
+  const raw=toScreen(lm0[8].x,lm0[8].y);
+  cursor={x:fX.f(raw.x,t), y:fY.f(raw.y,t)};
+  // hysteresis pinch for the primary hand
+  const r=pinchRatio(lm0);
+  if(!pinching && r<PINCH_ON)pinching=true;
+  else if(pinching && r>PINCH_OFF)pinching=false;
+
+  if(captureCooldown>0)captureCooldown--;
 
   if(phase==="capture"){
-    if(captureCooldown>0) captureCooldown--;
-    if(res.landmarks.length>=2 && pinchCount>=2 && captureCooldown===0) snapshot();
+    setStatus(pinchCount>=2?"ছবি তুলছি… ✊✊":"দুই হাত দেখাও","live");
+    if(res.landmarks.length>=2 && pinchCount>=2 && captureCooldown===0)snapshot();
   } else if(phase==="solve"){
-    for(let p=0;p<GRID*GRID;p++){ if(p===held) continue; drawTile(p,false); }
-    if(held>=0) drawTile(held,true);
-    const pinching=pinchCount>0;
-    if(cursor){
-      if(pinching && held<0){ const c=cellAt(cursor); if(c>=0) held=c; }
-      if(!pinching && held>=0){ const t=cellAt(cursor);
-        if(t>=0 && t!==held){ [order[held],order[t]]=[order[t],order[held]];
-          moves++; movesEl.textContent=moves; checkWin(); }
-        held=-1; }
-    } else if(held>=0){ held=-1; }
-    if(cursor){ ctx.strokeStyle = pinching?"#22d3ee":"rgba(255,255,255,.75)";
-      ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cursor.x,cursor.y,pinching?14:18,0,7); ctx.stroke(); }
+    if(pinching && held<0){const c=cellAt(cursor);if(c>=0)held=c;}
+    if(!pinching && held>=0){const tt=cellAt(cursor);
+      if(tt>=0&&tt!==held){[order[held],order[tt]]=[order[tt],order[held]];
+        moves++;movesN.textContent=moves;checkWin();}
+      held=-1;}
+    setStatus(pinching?(held>=0?"টুকরো ধরেছ ✊":"…"):"প্রস্তুত","act");
   }
+}
+
+/* ---------- draw (runs every frame) ---------- */
+function rr(x,y,w,h,r){ctx.beginPath();
+  if(ctx.roundRect)ctx.roundRect(x,y,w,h,r);else ctx.rect(x,y,w,h);}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+
+  // puzzle board
+  if(phase!=="capture" && captured){
+    const {s,ox,oy,cell}=rect(), sc=captured.width/GRID;
+    ctx.save();ctx.fillStyle="rgba(6,8,15,.35)";rr(ox-10,oy-10,s+20,s+20,18);ctx.fill();ctx.restore();
+    for(let p=0;p<GRID*GRID;p++){if(p===held)continue;tile(p,ox,oy,cell,sc,false);}
+    if(held>=0)tile(held,ox,oy,cell,sc,true);
+  }
+
+  // hand skeleton (cyan)
+  for(const pts of hands){
+    ctx.strokeStyle="rgba(0,240,255,.5)";ctx.lineWidth=2;
+    for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
+    for(const q of pts){ctx.fillStyle="#00f0ff";ctx.beginPath();ctx.arc(q.x,q.y,3.5,0,7);ctx.fill();}
+  }
+
+  // cursor
+  if(cursor && phase!=="done"){
+    ctx.save();ctx.shadowColor="#00f0ff";ctx.shadowBlur=pinching?16:8;
+    ctx.strokeStyle=pinching?"#00f0ff":"rgba(255,255,255,.85)";ctx.lineWidth=3;
+    ctx.beginPath();ctx.arc(cursor.x,cursor.y,pinching?13:18,0,7);ctx.stroke();ctx.restore();
+  }
+}
+function tile(pos,ox,oy,cell,sc,lift){
+  const orig=order[pos], sx=(orig%GRID)*sc, sy=Math.floor(orig/GRID)*sc;
+  let dx=ox+(pos%GRID)*cell, dy=oy+Math.floor(pos/GRID)*cell, w=cell,h=cell;
+  ctx.save();
+  if(lift&&cursor){dx=cursor.x-cell/2;dy=cursor.y-cell/2;w=h=cell*1.05;
+    ctx.shadowColor="rgba(0,240,255,.85)";ctx.shadowBlur=26;}
+  ctx.drawImage(captured,sx,sy,sc,sc,dx+1.5,dy+1.5,w-3,h-3);
+  ctx.shadowBlur=0;
+  const solved=order[pos]===pos;
+  ctx.strokeStyle=solved?"rgba(0,240,255,.95)":"rgba(255,255,255,.16)";
+  ctx.lineWidth=solved?3:1.5;ctx.strokeRect(dx+1.5,dy+1.5,w-3,h-3);
+  ctx.restore();
 }
 
 function checkWin(){
-  if(order.every((v,i)=>v===i)){ phase="done";
-    winMoves.textContent=moves; winEl.classList.add("on"); }
+  if(order.every((v,i)=>v===i)){phase="done";held=-1;
+    setStatus("মিলে গেছে! 🎉","act");
+    hint.innerHTML=`🎉 <b>${moves}</b> চালে মিলিয়ে ফেলেছ!`;renderBar();}
 }
 
-actBtn.onclick=()=>{ if(phase==="capture"){ captureCooldown=30; snapshot(); } };
-$("resetBtn").onclick=restart;
-$("againBtn").onclick=restart;
-function restart(){ winEl.classList.remove("on"); captured=null; held=-1;
-  captureCooldown=30; setPhase("capture"); }
+/* ---------- ui: bottom bar + hint per phase ---------- */
+function updateHint(){
+  if(phase==="capture")hint.textContent="দুই হাতে pinch করে ছবি তোলো ✊✊  (বা নিচে চাপো)";
+  else if(phase==="solve")hint.textContent="pinch করে টুকরো ধরো → অন্য ঘরে ছেড়ে দাও";
+}
+function renderBar(){
+  bar.innerHTML="";
+  if(phase==="capture"){bar.appendChild(mk("📸 ছবি তোলো","primary",()=>{if(phase==="capture")snapshot();}));}
+  else{bar.appendChild(mk("🔄 নতুন ছবি","",restart));}
+}
+function mk(label,cls,fn){const b=document.createElement("button");b.className="btn"+(cls?" "+cls:"");b.textContent=label;b.onclick=fn;return b;}
+function restart(){captured=null;held=-1;phase="capture";captureCooldown=18;
+  movesBox.style.display="none";setStatus("দুই হাত দেখাও","live");renderBar();updateHint();}
+
+/* ---------- main loop ---------- */
+function loop(){
+  requestAnimationFrame(loop);
+  if(!running)return;
+  if(video.readyState>=2 && video.currentTime!==lastVideoTime){
+    lastVideoTime=video.currentTime;
+    cachedRes=landmarker.detectForVideo(video,performance.now());
+    process(cachedRes);
+  }
+  draw();
+}
+
+/* ---------- intro ---------- */
+const intro=$("intro");
+function endIntro(){intro.style.transition="opacity .5s";intro.style.opacity="0";setTimeout(()=>intro.style.display="none",500);}
+intro.onclick=endIntro;setTimeout(endIntro,6000);
+
+/* ---------- start ---------- */
+const gate=$("gate"),go=$("go"),sp=$("sp"),goText=$("goText"),err=$("err");
+go.onclick=async()=>{
+  err.textContent="";sp.style.display="inline-block";goText.textContent="চালু হচ্ছে…";go.disabled=true;
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:640,height:480},audio:false});
+    video.srcObject=stream;await video.play();fit();
+    goText.textContent="মডেল লোড হচ্ছে…";
+    const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10/wasm");
+    landmarker=await HandLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",delegate:"GPU"},
+      runningMode:"VIDEO",numHands:2});
+    running=true;gate.style.display="none";
+    setStatus("দুই হাত দেখাও","live");renderBar();updateHint();loop();
+  }catch(e){console.error(e);
+    err.textContent=e.name==="NotAllowedError"
+      ?"ক্যামেরার অনুমতি দরকার। সেটিংসে অনুমতি দিয়ে আবার চেষ্টা করো।"
+      :"চালু করা গেল না — https বা localhost-এ চালাও। ("+(e.message||e.name)+")";
+    sp.style.display="none";goText.textContent="▶ আবার চেষ্টা করো";go.disabled=false;}
+};
 </script>
 </body>
 </html>
