@@ -72,12 +72,12 @@
   .overlay{z-index:11;display:none;opacity:0;transition:opacity .35s;overflow:hidden;
     background:radial-gradient(120% 100% at 50% 40%,rgba(8,12,28,.9),rgba(4,6,12,.97));}
   .overlay.show{display:flex;opacity:1;}
-  .overlay .card{position:relative;z-index:2;background:rgba(14,20,38,.92);border:1px solid var(--line);
-    border-radius:26px;padding:34px 30px;max-width:430px;box-shadow:0 0 60px rgba(0,240,255,.3);animation:rise .5s ease;}
+  .overlay .card{position:relative;z-index:2;width:100%;max-width:430px;background:rgba(14,20,38,.92);border:1px solid var(--line);
+    border-radius:26px;padding:32px 22px;box-shadow:0 0 60px rgba(0,240,255,.3);animation:rise .5s ease;}
   @keyframes rise{from{transform:translateY(22px) scale(.95);opacity:0}to{transform:none;opacity:1}}
   .overlay .emoji{font-size:60px;animation:pop .6s ease;}
-  .overlay h2{font-family:var(--display);font-weight:700;font-size:clamp(40px,12vw,68px);line-height:1.05;color:#fff;
-    margin-top:4px;animation:titleGlow 2s ease-in-out infinite;}
+  .overlay h2{font-family:var(--display);font-weight:700;font-size:clamp(27px,7.4vw,42px);line-height:1.08;color:#fff;
+    margin-top:4px;letter-spacing:-.5px;overflow-wrap:break-word;animation:titleGlow 2s ease-in-out infinite;}
   @keyframes titleGlow{0%,100%{text-shadow:0 0 22px rgba(0,240,255,.6)}50%{text-shadow:0 0 44px rgba(0,240,255,.95),0 0 16px rgba(177,75,255,.7)}}
   .overlay p{color:#c4d6f0;font-size:15px;margin-top:8px;}
   .bigtime{margin:18px 0 4px;}
@@ -346,9 +346,15 @@ function draw(){
     for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
     ctx.strokeStyle=HAND_LINE;ctx.lineWidth=4;
     for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
-    for(const q of pts){
-      ctx.fillStyle="rgba(234,255,46,.28)";ctx.beginPath();ctx.arc(q.x,q.y,9,0,7);ctx.fill();
-      ctx.fillStyle=HAND_DOT;ctx.beginPath();ctx.arc(q.x,q.y,5.5,0,7);ctx.fill();}
+    for(let k=0;k<pts.length;k++){const q=pts[k];
+      if(k===4||k===8){               // বুড়ো আঙুল + তর্জনীর মাথা = pinch point (লাল)
+        ctx.fillStyle="rgba(255,50,50,.30)";ctx.beginPath();ctx.arc(q.x,q.y,12,0,7);ctx.fill();
+        ctx.fillStyle="#ff3b3b";ctx.beginPath();ctx.arc(q.x,q.y,7,0,7);ctx.fill();
+      }else{
+        ctx.fillStyle="rgba(234,255,46,.28)";ctx.beginPath();ctx.arc(q.x,q.y,9,0,7);ctx.fill();
+        ctx.fillStyle=HAND_DOT;ctx.beginPath();ctx.arc(q.x,q.y,5.5,0,7);ctx.fill();
+      }
+    }
   }
   if(pcur&&phase==="solve"){
     ctx.strokeStyle="rgba(170,255,0,.3)";ctx.lineWidth=8;
