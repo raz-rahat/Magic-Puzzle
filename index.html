@@ -123,7 +123,7 @@ const GAIN=1.0;
 const PINCH_ON=0.5, PINCH_OFF=0.72;
 const SKEL_LERP=0.5;                 // only the skeleton is eased; cursor is lag-free
 const AUTHOR="Rahat-ul-Fardoush Raz";
-const HAND_DOT="#e3ff3a", HAND_LINE="rgba(90,255,120,.6)", POINTER="#9dff00"; // reel-এর সবুজ পয়েন্টার/হাত
+const HAND_DOT="#eaff2e", HAND_LINE="#3dff7a", POINTER="#aaff00"; // reel-এর সবুজ-হলুদ হাত
 
 /* ---------- dom ---------- */
 const $=id=>document.getElementById(id);
@@ -270,15 +270,25 @@ function draw(){
   if(phase==="capture"&&hands.length>=2)drawFrame(squareFrom(hands[0][8],hands[1][8]));
 
   for(const pts of hands){
-    ctx.strokeStyle=HAND_LINE;ctx.lineWidth=2;
+    ctx.lineCap="round";
+    // glowing green connections (double-stroke fakes a glow without costly shadowBlur)
+    ctx.strokeStyle="rgba(61,255,122,.25)";ctx.lineWidth=9;
     for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
-    for(const q of pts){ctx.fillStyle=HAND_DOT;ctx.beginPath();ctx.arc(q.x,q.y,3.5,0,7);ctx.fill();}
+    ctx.strokeStyle=HAND_LINE;ctx.lineWidth=4;
+    for(const [a,b] of LINKS){ctx.beginPath();ctx.moveTo(pts[a].x,pts[a].y);ctx.lineTo(pts[b].x,pts[b].y);ctx.stroke();}
+    // big yellow dots with halo
+    for(const q of pts){
+      ctx.fillStyle="rgba(234,255,46,.28)";ctx.beginPath();ctx.arc(q.x,q.y,9,0,7);ctx.fill();
+      ctx.fillStyle=HAND_DOT;ctx.beginPath();ctx.arc(q.x,q.y,5.5,0,7);ctx.fill();
+    }
   }
   if(cursor&&phase!=="done"){            // round green pointer on the fingertip (reel-style)
+    ctx.strokeStyle="rgba(170,255,0,.3)";ctx.lineWidth=8;
+    ctx.beginPath();ctx.arc(cursor.x,cursor.y,pinching?13:17,0,7);ctx.stroke();
     ctx.strokeStyle=POINTER;ctx.lineWidth=3;
     ctx.beginPath();ctx.arc(cursor.x,cursor.y,pinching?12:16,0,7);ctx.stroke();
-    ctx.fillStyle=pinching?POINTER:"rgba(157,255,0,.5)";
-    ctx.beginPath();ctx.arc(cursor.x,cursor.y,pinching?5:3,0,7);ctx.fill();
+    ctx.fillStyle=pinching?POINTER:"rgba(170,255,0,.55)";
+    ctx.beginPath();ctx.arc(cursor.x,cursor.y,pinching?5:3.5,0,7);ctx.fill();
   }
 }
 function checkWin(){if(order.every((v,i)=>v===i)){phase="done";held=-1;
